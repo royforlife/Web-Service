@@ -24,7 +24,7 @@ class Url(db.Model):
 def validate_url(url):
     if url is None:
         return False
-    if not url.startswith('http://') and not url.startswith('https://'):
+    if not re.match(r'^https?:/{2}\w.+$', url):
         return False
     return True
 
@@ -54,7 +54,7 @@ def route_root():
                 db.session.commit()
                 return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
         else:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400})
+            return jsonify({'status': 'error', 'data': {'message': 'invalid url'}, 'code': 400})
     elif request.method == 'DELETE':
         return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
 
