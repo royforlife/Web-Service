@@ -4,12 +4,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from hashids import Hashids
 
-
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 db = SQLAlchemy(app)
 hashids = Hashids()
+
 
 class Url(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -20,12 +20,18 @@ class Url(db.Model):
         self.origin_url = origin_url
         self.short_url = short_url
 
+
 def validate_url(url):
     if url is None:
         return False
     if not url.startswith('http://') and not url.startswith('https://'):
         return False
     return True
+
+
+def shorten_url(url):
+    pass
+
 
 @app.route('/', methods=['GET', 'POST', 'DELETE'])
 def route_root():
@@ -36,18 +42,21 @@ def route_root():
     elif request.method == 'POST':
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
-            short_url = origin_url
-            new_url = Url(origin_url, short_url)
-            db.session.add(new_url)
-            db.session.commit()
-            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
-            db.session.commit()
-            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
+            urls = Url.query.filter_by(origin_url=origin_url).all()
+            if len(urls) > 0:
+                return jsonify({'status': 'success', 'data': {'id': urls[0].short_url}, 'code': 201})
+            else:
+                short_url = origin_url
+                new_url = Url(origin_url, short_url)
+                db.session.add(new_url)
+                db.session.commit()
+                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
+                db.session.commit()
+                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
         else:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400})
     elif request.method == 'DELETE':
         return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
-
 
 
 @app.route('/<key>', methods=['GET', 'PUT', 'DELETE'])
