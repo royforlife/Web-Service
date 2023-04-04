@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify, Response, redirect, 
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from hashids import Hashids
+import urllib.request
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -25,6 +26,10 @@ def validate_url(url):
     if url is None:
         return False
     if not re.match(r'^https?:/{2}\w.+$', url):
+        return False
+    try:
+        urllib.request.urlopen(url)
+    except Exception as e:
         return False
     return True
 
