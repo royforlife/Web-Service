@@ -16,6 +16,7 @@ class Url(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     origin_url = db.Column(db.Text, nullable=False)
     short_url = db.Column(db.String(100), nullable=False)
+    user = db.Column(db.String(100), nullable=False)
 
     def __init__(self, origin_url, short_url):
         self.origin_url = origin_url
@@ -45,6 +46,7 @@ def route_root():
         return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200})
 
     elif request.method == 'POST':
+        # todo add user
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
             urls = Url.query.filter_by(origin_url=origin_url).all()
@@ -79,8 +81,9 @@ def route_id(key):
 
     elif request.method == 'PUT':
         urls = Url.query.filter_by(short_url=key).all()
-        # todo: return 200
+        # todo: return 200, only relative user can update
         # todo: return 400 'error'
+        # todo: retuen 403 Forbidden
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
     elif request.method == 'DELETE':
@@ -88,6 +91,8 @@ def route_id(key):
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
         else:
+            # todo: only relative user can delete
+            # todo: retuen 403 Forbidden
             db.session.delete(urls[0])
             db.session.commit()
             return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204})

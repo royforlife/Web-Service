@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 ```shell
 python
-from project_name import app, db
+from app import app, db
 app.app_context().push()
 db.create_all()
 ```
