@@ -47,7 +47,7 @@ def route_root():
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
             user = request.headers.get('Authorization')
-            if user is None:
+            if user == '' or user is None:
                 user = 'default'
             short_url = origin_url
             new_url = Url(origin_url, short_url, user=user)
@@ -79,15 +79,24 @@ def route_id(key):
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) > 0:
             user = request.headers.get('Authorization')
-            if user is None:
+            if user == '' or user is None:
                 user = 'default'
 
             urls = Url.query.filter_by(short_url=key, user=user).all()
             # todo: return 200, only relative user can update
             if len(urls) > 0:
+                original_url = urls[0].origin_url
                 # delete old url
                 db.session.delete(urls[0])
                 db.session.commit()
+                # add new url
+                short_url = original_url
+                new_url = Url(original_url, short_url, user=user)
+                db.session.add(new_url)
+                db.session.commit()
+                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
+                db.session.commit()
+                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
             else:
                 # todo: retuen 403 Forbidden
                 return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 403})
@@ -101,7 +110,7 @@ def route_id(key):
         else:
             # todo: only relative user can delete
             user = request.headers.get('Authorization')
-            if user is None:
+            if user == '' or user is None:
                 user = 'default'
             urls = Url.query.filter_by(short_url=key, user=user).all()
             if len(urls) == 0:
