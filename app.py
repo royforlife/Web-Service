@@ -18,9 +18,10 @@ class Url(db.Model):
     short_url = db.Column(db.String(100), nullable=False)
     user = db.Column(db.String(100), nullable=False)
 
-    def __init__(self, origin_url, short_url):
+    def __init__(self, origin_url, short_url, user):
         self.origin_url = origin_url
         self.short_url = short_url
+        self.user = user
 
 
 def validate_url(url):
@@ -35,10 +36,6 @@ def validate_url(url):
     return True
 
 
-def shorten_url(url):
-    pass
-
-
 @app.route('/', methods=['GET', 'POST', 'DELETE'])
 def route_root():
     if request.method == 'GET':
@@ -49,17 +46,16 @@ def route_root():
         # todo add user
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
-            urls = Url.query.filter_by(origin_url=origin_url).all()
-            if len(urls) > 0:
-                return jsonify({'status': 'success', 'data': {'id': urls[0].short_url}, 'code': 201})
-            else:
-                short_url = origin_url
-                new_url = Url(origin_url, short_url)
-                db.session.add(new_url)
-                db.session.commit()
-                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
-                db.session.commit()
-                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
+            user = request.headers.get('Authorization')
+            if user is None:
+                user = 'default'
+            short_url = origin_url
+            new_url = Url(origin_url, short_url, user=user)
+            db.session.add(new_url)
+            db.session.commit()
+            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
+            db.session.commit()
+            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
         else:
             return jsonify({'status': 'error', 'data': {'message': 'invalid url'}, 'code': 400})
     elif request.method == 'DELETE':
@@ -80,7 +76,7 @@ def route_id(key):
                 return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301})
 
     elif request.method == 'PUT':
-        urls = Url.query.filter_by(short_url=key).all()
+        urls = Url.query.filter_by(short_url=key, user='default').all()
         # todo: return 200, only relative user can update
         # todo: return 400 'error'
         # todo: retuen 403 Forbidden
