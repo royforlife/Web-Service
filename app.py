@@ -76,11 +76,23 @@ def route_id(key):
                 return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301})
 
     elif request.method == 'PUT':
-        urls = Url.query.filter_by(short_url=key, user='default').all()
-        # todo: return 200, only relative user can update
-        # todo: return 400 'error'
-        # todo: retuen 403 Forbidden
-        if len(urls) == 0:
+        urls = Url.query.filter_by(short_url=key).all()
+        if len(urls) > 0:
+            user = request.headers.get('Authorization')
+            if user is None:
+                user = 'default'
+
+            urls = Url.query.filter_by(short_url=key, user=user).all()
+            # todo: return 200, only relative user can update
+            if len(urls) > 0:
+                # delete old url
+                db.session.delete(urls[0])
+                db.session.commit()
+            else:
+                # todo: retuen 403 Forbidden
+                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 403})
+
+        else:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
     elif request.method == 'DELETE':
         urls = Url.query.filter_by(short_url=key).all()
@@ -88,10 +100,17 @@ def route_id(key):
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
         else:
             # todo: only relative user can delete
-            # todo: retuen 403 Forbidden
-            db.session.delete(urls[0])
-            db.session.commit()
-            return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204})
+            user = request.headers.get('Authorization')
+            if user is None:
+                user = 'default'
+            urls = Url.query.filter_by(short_url=key, user=user).all()
+            if len(urls) == 0:
+                # todo: retuen 403 Forbidden
+                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 403})
+            else:
+                db.session.delete(urls[0])
+                db.session.commit()
+                return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204})
 
 
 if __name__ == '__main__':
