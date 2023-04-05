@@ -40,7 +40,7 @@ def validate_url(url):
 def route_root():
     if request.method == 'GET':
         all_urls = Url.query.all()
-        return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200})
+        return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
 
     elif request.method == 'POST':
         if 'url' in request.json.keys() and validate_url(request.json['url']):
@@ -54,11 +54,11 @@ def route_root():
             db.session.commit()
             db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
             db.session.commit()
-            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
+            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
         else:
-            return jsonify({'status': 'error', 'data': {'message': 'invalid url'}, 'code': 400})
+            return jsonify({'status': 'error', 'data': {'message': 'invalid url'}, 'code': 400}), 400
     elif request.method == 'DELETE':
-        return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
+        return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
 
 @app.route('/<key>', methods=['GET', 'PUT', 'DELETE'])
@@ -66,13 +66,13 @@ def route_id(key):
     if request.method == 'GET':
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) == 0:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
+            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
         else:
             # redict to origin_url if it is valid
             if validate_url(urls[0].origin_url):
                 return redirect(urls[0].origin_url)
             else:
-                return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301})
+                return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301}), 301
 
     elif request.method == 'PUT':
         urls = Url.query.filter_by(short_url=key).all()
@@ -82,7 +82,6 @@ def route_id(key):
                 user = 'default'
 
             urls = Url.query.filter_by(short_url=key, user=user).all()
-            # todo: return 200, only relative user can update
             if len(urls) > 0:
                 original_url = urls[0].origin_url
                 # delete old url
@@ -95,27 +94,27 @@ def route_id(key):
                 db.session.commit()
                 db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
                 db.session.commit()
-                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 200})
+                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 200}), 200
             else:
-                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden or Not Found'}, 'code': 404})
+                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 400}), 400
 
         else:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
+            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
     elif request.method == 'DELETE':
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) == 0:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
+            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
         else:
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
             urls = Url.query.filter_by(short_url=key, user=user).all()
             if len(urls) == 0:
-                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403})
+                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
             else:
                 db.session.delete(urls[0])
                 db.session.commit()
-                return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204})
+                return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204}), 204
 
 
 if __name__ == '__main__':
