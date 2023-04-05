@@ -6,7 +6,6 @@ from hashids import Hashids
 import urllib.request
 from datetime import datetime, timedelta
 from sqlalchemy import event
-from datetime import datetime
 from flask_apscheduler import APScheduler
 
 app = Flask(__name__)
