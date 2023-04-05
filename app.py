@@ -4,6 +4,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from hashids import Hashids
 import urllib.request
+from datetime import datetime, timedelta
+from sqlalchemy import event
+from functools import wraps
+from datetime import datetime
+from flask_apscheduler import APScheduler
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -17,12 +22,81 @@ class Url(db.Model):
     origin_url = db.Column(db.Text, nullable=False)
     short_url = db.Column(db.String(100), nullable=False)
     user = db.Column(db.String(100), nullable=False)
+    created_date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, origin_url, short_url, user):
         self.origin_url = origin_url
         self.short_url = short_url
         self.user = user
 
+# everytime the outdated data is expired, it will response for the last time and will be delated
+@event.listens_for(Url, 'load') # wired, but some other options(expect for load) doesn't work
+def check_url_age(target, context): # context is useless but needed
+    current_time = datetime.utcnow()
+    created_date = target.created_date
+    
+    # calculate the time difference, set to expire after a certain time(like 10 hour)
+    if current_time - created_date > timedelta(seconds=60):
+        db.session.delete(target)
+        db.session.commit()
+        # return jsonify({'status': 'error', 'data': {'message': 'adfsfdsadfsadfsdfsaadfsfadsdfsa'}, 'code': 404})
+    else:
+        # update the created_date of object target in the database
+        target.created_date = current_time
+        db.session.flush()
+        db.session.commit()
+'''
+# improper
+# timely delete outdated data
+def clean_outdated_data():
+    while True:
+        current_time = datetime.utcnow()
+        outdated_urls = Url.query.filter(Url.created_date < current_time - timedelta(seconds=60)).all()
+        for url in outdated_urls:
+            db.session.delete(url)
+        db.session.commit()
+'''
+# executor = Executor(app)
+# @appcontext_task
+# def update_db():
+#     # 更新数据库的代码
+#     current_time = datetime.utcnow()
+#     outdated_urls = Url.query.filter(Url.created_date < current_time - timedelta(seconds=120)).all()
+#     for url in outdated_urls:
+#         db.session.delete(url)
+#     db.session.commit()
+# future = executor.submit(update_db)
+
+    # return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
+
+# def return_error_on_expiration(fn):
+#     @wraps(fn)
+#     def wrapper(target):
+#         current_time = datetime.utcnow()
+#         created_date = target.created_date
+
+#         # Calculate the time difference, set to expire after a certain time (like 10 hours)
+#         if current_time - created_date > timedelta(seconds=60):
+#             return jsonify({'status': 'error', 'data': {'message': 'adfsfdsadfsadfsdfsaadfsfadsdfsa'}, 'code': 404})
+#         else:
+#             return fn(target)
+#     return wrapper
+
+# def return_error_on_expiration(fn):
+#     @wraps(fn)
+#     def wrapper(*args, **kwargs):
+#         target = args[0]
+#         current_time = datetime.utcnow()
+#         created_date = target.created_date
+        
+#         # Calculate the time difference, set to expire after a certain time (like 10 hours)
+#         if current_time - created_date > timedelta(seconds=60):
+#             db.session.delete(target)
+#             db.session.commit()
+#             return jsonify({'status': 'error', 'data': {'message': 'adfsfdsadfsadfsdfsaadfsfadsdfsa'}, 'code': 404})
+#         else:
+#             return fn(*args, **kwargs)
+#     return wrapper
 
 def validate_url(url):
     if url is None:
@@ -120,6 +194,21 @@ def route_id(key):
                 db.session.delete(urls[0])
                 db.session.commit()
                 return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204})
+
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+# misfire_grace_time: specifies the number of seconds that the scheduler will wait for the task to execute before marking it as "misfired". 
+@scheduler.task('interval', id='do_job_1', seconds=10, misfire_grace_time=900)
+def update_db():
+    # 更新数据库的代码
+    current_time = datetime.utcnow()
+    with app.app_context():
+        outdated_urls = Url.query.filter(Url.created_date < (current_time - timedelta(seconds=60))).all()
+        for url in outdated_urls:
+            db.session.delete(url)
+            db.session.commit()
 
 
 if __name__ == '__main__':
