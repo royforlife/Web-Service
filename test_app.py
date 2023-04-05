@@ -26,10 +26,12 @@ class TestApp(unittest.TestCase):
         self.assertEqual(json.loads(response.data)['code'], 404)
 
     def test_post_valid_root(self):
-        response = self.app.post('/', data=json.dumps({'url': test_valid_url}), content_type='application/json')
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(json.loads(response.data)['status'], 'success')
-        self.assertEqual(json.loads(response.data)['code'], 201)
+        for i in range(100000):
+            test_url = 'http://www.google.com/' + str(i)
+            response = self.app.post('/', data=json.dumps({'url': test_url}), content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(json.loads(response.data)['status'], 'success')
+            self.assertEqual(json.loads(response.data)['code'], 201)
 
     def test_post_invalid_root(self):
         response = self.app.post('/', data=json.dumps({'url': test_invalid_url}), content_type='application/json')
