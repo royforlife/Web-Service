@@ -43,7 +43,6 @@ def route_root():
         return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200})
 
     elif request.method == 'POST':
-        # todo add user
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
             user = request.headers.get('Authorization')
@@ -96,10 +95,9 @@ def route_id(key):
                 db.session.commit()
                 db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
                 db.session.commit()
-                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201})
+                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 200})
             else:
-                # todo: retuen 403 Forbidden
-                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 403})
+                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden or Not Found'}, 'code': 404})
 
         else:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
@@ -108,14 +106,12 @@ def route_id(key):
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404})
         else:
-            # todo: only relative user can delete
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
             urls = Url.query.filter_by(short_url=key, user=user).all()
             if len(urls) == 0:
-                # todo: retuen 403 Forbidden
-                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 403})
+                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403})
             else:
                 db.session.delete(urls[0])
                 db.session.commit()
