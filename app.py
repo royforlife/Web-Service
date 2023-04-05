@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import event
 from flask_apscheduler import APScheduler
 
+
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
