@@ -56,7 +56,7 @@ def route_root():
             db.session.commit()
             return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
         else:
-            return jsonify({'status': 'error', 'data': {'message': 'invalid url'}, 'code': 400}), 400
+            return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
     elif request.method == 'DELETE':
         return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
@@ -75,28 +75,21 @@ def route_id(key):
                 return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301}), 301
 
     elif request.method == 'PUT':
+        new_url = request.json['url']
+        if new_url is None or not validate_url(new_url):
+            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) > 0:
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
-
             urls = Url.query.filter_by(short_url=key, user=user).all()
             if len(urls) > 0:
-                original_url = urls[0].origin_url
-                # delete old url
-                db.session.delete(urls[0])
+                db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
                 db.session.commit()
-                # add new url
-                short_url = original_url
-                new_url = Url(original_url, short_url, user=user)
-                db.session.add(new_url)
-                db.session.commit()
-                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
-                db.session.commit()
-                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 200}), 200
+                return jsonify({'status': 'success', 'data': {}}), 200
             else:
-                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 400}), 400
+                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
 
         else:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
@@ -114,7 +107,7 @@ def route_id(key):
             else:
                 db.session.delete(urls[0])
                 db.session.commit()
-                return jsonify({'status': 'success', 'data': {'message': 'success'}, 'code': 204}), 204
+                return jsonify({'status': 'success', 'data': {'message': 'delete success'}, 'code': 204}), 204
 
 
 if __name__ == '__main__':
