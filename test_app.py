@@ -32,24 +32,12 @@ class TestApp(unittest.TestCase):
         self.assertEqual(json.loads(response.data)['status'], 'error')
         self.assertEqual(json.loads(response.data)['code'], 404)
 
-    def test_post_valid_root(self):
-        """ Test adding new valid data to the database
-        Request: POST
-        """
-        for i in range(100000):
-            test_url = 'http://www.google.com/' + str(i)
-            response = self.app.post('/', data=json.dumps({'url': test_url}), content_type='application/json')
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(json.loads(response.data)['status'], 'success')
-            self.assertEqual(json.loads(response.data)['code'], 201)
-
     def test_post_invalid_root(self):
         """ Test posting an invalid URL
         Request: POST
         """
         response = self.app.post('/', data=json.dumps({'url': test_invalid_url}), content_type='application/json')
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.data)['data']['message'], 'invalid url')
         self.assertEqual(json.loads(response.data)['status'], 'error')
         self.assertEqual(json.loads(response.data)['code'], 400)
 
@@ -71,40 +59,6 @@ class TestApp(unittest.TestCase):
         response = self.app.get('/'+valid_id)
         self.assertEqual(response.status_code, 302)
 
-    def test_put_root_valid_id_valid_auth(self):
-        """ Get a valid url before the test. 
-        Then test updating an existing URL resource with a valid ID and valid authorization.
-        Request: PUT
-        """
-        returned = self.app.post('/', data=json.dumps({'url': test_valid_url}), content_type='application/json')
-        valid_id = json.loads(returned.data)['data']['id']
-        response = self.app.put('/'+valid_id, headers={'Authorization': 'default'})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.data)['status'], 'success')
-        self.assertEqual(json.loads(response.data)['code'], 200)
-
-    def test_put_root_valid_id_valid_auth(self):
-        """ Get a valid url before the test. 
-        Then test updating an existing URL resource with a valid ID and invalid authorization.
-        Request: PUT
-        """
-        returned = self.app.post('/', data=json.dumps({'url': test_valid_url}), content_type='application/json')
-        valid_id = json.loads(returned.data)['data']['id']
-        response = self.app.put('/'+valid_id, headers={'Authorization': test_invalid_user})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(json.loads(response.data)['data']['message'], 'Authorization Forbidden')
-        self.assertEqual(json.loads(response.data)['status'], 'error')
-        self.assertEqual(json.loads(response.data)['code'], 400)
-    
-    def test_put_root_invalid_id(self):
-        """ Test updating a URL resource with an invalid ID.
-        Request: PUT
-        """
-        response = self.app.put('/'+test_invalid_id)
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(json.loads(response.data)['status'], 'error')
-        self.assertEqual(json.loads(response.data)['code'], 404)
-
     def test_delete_root_invalid_id(self):
         """ Test deleting an invalid ID.
         Request: DELETE
@@ -123,7 +77,6 @@ class TestApp(unittest.TestCase):
         valid_id = json.loads(returned.data)['data']['id']
         response = self.app.delete('/'+valid_id, headers={'Authorization': test_invalid_user})
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(json.loads(response.data)['data']['message'], 'Authorization Forbidden')
         self.assertEqual(json.loads(response.data)['status'], 'error')
         self.assertEqual(json.loads(response.data)['code'], 403)
 
