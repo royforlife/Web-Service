@@ -4,14 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from hashids import Hashids
 import urllib.request
 
-# Create Flask app instance
+# Create a Flask app instance
 app = Flask(__name__)
-# Initialize database
+# Initialize the database
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 # Integrates SQLAlchemy with Flask
 db = SQLAlchemy(app)
-# Initialize Hashids object to encode URLs
+# Initialize the Hashids object to encode URLs
 hashids = Hashids(min_length=2)
 
 
@@ -28,14 +28,14 @@ class Url(db.Model):
 
 
 def validate_url(url: str) -> bool:
-    """Determinates the validity of a url. 
-    1 Checing syntax 2. Checking if it is available on the Internet
+    """Determinates the validity of a URL. 
+    1 Checking syntax 2. Checking if it is available on the Internet
 
     Args:
-        url (String): A url with indeterminate validity
+        URL (String): A URL with indeterminate validity
 
     Returns:
-        Boolean: the validity of the url
+        Boolean: the validity of the URL
     """
     if url is None:
         return False
@@ -52,9 +52,6 @@ def validate_url(url: str) -> bool:
 def route_root():
     """
     A Flask route that handles GET, POST, and DELETE requests for a URL shortener service.
-
-    Returns:
-        _type_: The HTTP response to the request.
     """
     # GET method: returns a JSON object containing all shortened URLs in the database.
     if request.method == 'GET':
@@ -66,7 +63,7 @@ def route_root():
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
             user = request.headers.get('Authorization')
-            # Assign each url an authorization
+            # Assign each URL an authorization
             if user == '' or user is None:
                 user = 'default'
             short_url = origin_url
@@ -79,31 +76,26 @@ def route_root():
         else:
             return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
     
-    # DELETE method: returns a 404 error as the root endpoint cannot be deleted.
+    # DELETE method: returns a 404 error as the root cannot be deleted.
     elif request.method == 'DELETE':
         return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
 
 @app.route('/<key>', methods=['GET', 'PUT', 'DELETE'])
 def route_id(key):
-    
     """
-    This function maps HTTP requests for the shortened URL key to appropriate response.
+    This function maps HTTP requests for the shortened URL key to appropriate response message.
 
     Args:
         key (str): The shortened URL key(id).
-
-    Returns:
-        Response: The HTTP response to the request.
     """
-
     # GET requests: retrieves the original URL from the database and redirects to it.
     if request.method == 'GET':
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
         else:
-            # Redict to origin_url if it is valid
+            # redirect to origin_url if it is valid
             if validate_url(urls[0].origin_url):
                 return redirect(urls[0].origin_url)
             else:
@@ -118,7 +110,7 @@ def route_id(key):
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) > 0:
-            # Each user only have operational access to their url
+            # Users only have operational access to their URL
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
@@ -133,7 +125,7 @@ def route_id(key):
         else:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
     
-    # DELETE requests: deletes the original URL from the database for the provided shortened URL key.
+    # DELETE requests: deletes the original URL from the database.
     elif request.method == 'DELETE':
         
         urls = Url.query.filter_by(short_url=key).all()
@@ -141,7 +133,7 @@ def route_id(key):
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
         else:
-            # Users only hava delete access to their url
+            # Users only have deleted access to their URL
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
