@@ -27,8 +27,8 @@ class Url(db.Model):
         self.user = user
 
 
-def validate_url(url: str) -> bool:
-    """Determinates the validity of a URL. 
+def validate_url(url: str):
+    """Determinate the validity of a URL.
     1 Checking syntax 2. Checking if it is available on the Internet
 
     Args:
@@ -36,6 +36,7 @@ def validate_url(url: str) -> bool:
 
     Returns:
         Boolean: the validity of the URL
+        :param url:
     """
     if url is None:
         return False
@@ -58,7 +59,8 @@ def route_root():
         all_urls = Url.query.all()
         return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
 
-    # POST method: if the URL is valid, it is added to the database with a new unique short URL. If the URL is invalid, an error response is returned.
+    # POST method: if the URL is valid, it is added to the database with a new unique short URL.
+    # If the URL is invalid, an error response is returned.
     elif request.method == 'POST':
         if 'url' in request.json.keys() and validate_url(request.json['url']):
             origin_url = request.json['url']
@@ -70,6 +72,7 @@ def route_root():
             new_url = Url(origin_url, short_url, user=user)
             db.session.add(new_url)
             db.session.commit()
+            # Encode the id of the new URL with Hashids to generate a short URL
             db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
             db.session.commit()
             return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
@@ -110,7 +113,7 @@ def route_id(key):
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) > 0:
-            # Users only have operational access to their URL
+            # Users only have operational access to their own URLs
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'
@@ -133,7 +136,7 @@ def route_id(key):
         if len(urls) == 0:
             return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
         else:
-            # Users only have deleted access to their URL
+            # Users only have deleted access to their own URLs
             user = request.headers.get('Authorization')
             if user == '' or user is None:
                 user = 'default'

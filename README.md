@@ -10,6 +10,9 @@ pip install -r requirements.txt
 
 ```shell
 python
+```
+
+```python
 from app import app, db
 app.app_context().push()
 db.create_all()
@@ -19,4 +22,10 @@ db.create_all()
 
 ```shell
 python app.py
+```
+
+### 4. run tests
+
+```shell
+python test_app.py
 ```
