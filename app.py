@@ -121,7 +121,7 @@ def route_id(key):
             if len(urls) > 0:
                 db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
                 db.session.commit()
-                return jsonify({'status': 'success', 'data': {}}), 200
+                return jsonify({'status': 'success'}), 200
             else:
                 return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
         
