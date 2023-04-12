@@ -24,6 +24,7 @@ db.create_all()
 ```shell
 python app.py
 ```
+The server will be running on `http://localhost:3000`
 
 ### 4. run tests
 
