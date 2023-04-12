@@ -1,7 +1,6 @@
 import os, re
 from flask import Flask, request, jsonify, redirect
 from flask_sqlalchemy import SQLAlchemy
-from hashids import Hashids
 import urllib.request
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
@@ -19,9 +18,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = POSTGRES_URI
 
 # Integrates SQLAlchemy with Flask
 db = SQLAlchemy(app)
-# Initialize the Hashids object to encode URLs
-hashids = Hashids(min_length=2)
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(100), nullable=False)

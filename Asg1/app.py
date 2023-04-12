@@ -1,7 +1,6 @@
 import os, re
 from flask import Flask, request, jsonify, redirect
 from flask_sqlalchemy import SQLAlchemy
-from hashids import Hashids
 import urllib.request
 
 # Create a Flask app instance
@@ -12,8 +11,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'da
 # Integrates SQLAlchemy with Flask
 db = SQLAlchemy(app)
 # Initialize the Hashids object to encode URLs
-hashids = Hashids(min_length=2)
-
 
 class Url(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -49,6 +46,20 @@ def validate_url(url: str):
     return True
 
 
+# create a function that maps number to a short String with the alphabet(a-z, A-Z, 0-9)
+def create_ID(num):
+    # Map to store 62 possible characters
+    map = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    shorturl = ""
+    # Convert given integer id to a base 62 number
+    while (num):
+        shorturl += map[num % 62]
+        num = num // 62
+    # Reverse shortURL to complete base conversion
+    shorturl = shorturl[::-1]
+    return shorturl
+
+
 @app.route('/', methods=['GET', 'POST', 'DELETE'])
 def route_root():
     """
@@ -72,8 +83,8 @@ def route_root():
             new_url = Url(origin_url, short_url, user=user)
             db.session.add(new_url)
             db.session.commit()
-            # Encode the id of the new URL with Hashids to generate a short URL
-            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': hashids.encode(new_url.id)})
+            # Encode the id of the new URL to generate a short URL
+            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': create_ID(new_url.id)})
             db.session.commit()
             return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
         else:
@@ -150,4 +161,4 @@ def route_id(key):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=3000)

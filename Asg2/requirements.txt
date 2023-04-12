@@ -1,6 +1,5 @@
 flask
 flask_sqlalchemy
-hashids
 flask-restful
 flask-jwt-extended
 passlib
