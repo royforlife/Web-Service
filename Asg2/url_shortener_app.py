@@ -4,11 +4,12 @@ from flask_sqlalchemy import SQLAlchemy
 import urllib.request
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
-import utils
+import requests
 
 # Create a Flask app instance
 app = Flask(__name__)
 # Initialize the database
+AUTH_URL = 'http://localhost:3000'
 POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
 engine = create_engine(POSTGRES_URI)
 if not database_exists(engine.url):
@@ -37,16 +38,6 @@ with app.app_context():
     db.create_all()
 
 def validate_url(url: str):
-    """Determinate the validity of a URL.
-    1 Checking syntax 2. Checking if it is available on the Internet
-
-    Args:
-        URL (String): A URL with indeterminate validity
-
-    Returns:
-        Boolean: the validity of the URL
-        :param url:
-    """
     if url is None:
         return False
     if not re.match(r'^https?:/{2}\w.+$', url):
@@ -72,57 +63,40 @@ def create_ID(num):
 
 @app.route('/', methods=['GET', 'POST', 'DELETE'])
 def route_root():
-    """
-    A Flask route that handles GET, POST, and DELETE requests for a URL shortener service.
-    """
-    # GET method: returns a JSON object containing all shortened URLs in the database.
-    user = request.headers.get('Authorization')
-    user = utils.decode_token(user)
-    # Assign each URL an authorization
+    token = request.headers.get('Authorization')
+    r = requests.get(AUTH_URL + '/users/validate', headers={'Authorization': token})
+    if r.status_code != 200:
+        return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
+    if 'user' not in r.json().keys():
+        return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
+    user = r.json()['user']
     if user == '' or user is None:
         return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
-    else:
-        if request.method == 'GET':
-            all_urls = Url.query.all()
-            return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
 
-        # POST method: if the URL is valid, it is added to the database with a new unique short URL.
-        # If the URL is invalid, an error response is returned.
-        elif request.method == 'POST':
-            if 'url' in request.json.keys() and validate_url(request.json['url']):
-                origin_url = request.json['url']
-                user = request.headers.get('Authorization')
-                user = utils.decode_token(user)
-                # Assign each URL an authorization
-                if user == '' or user is None:
-                    return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
-                short_url = origin_url
-                new_url = Url(origin_url, short_url, user=user)
-                db.session.add(new_url)
-                db.session.commit()
-                # Encode the id of the new URL with Hashids to generate a short URL
-                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': create_ID(new_url.id)})
-                db.session.commit()
-                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
-            else:
-                return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
+    if request.method == 'GET':
+        all_urls = Url.query.all()
+        return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
+    elif request.method == 'POST':
+        if 'url' in request.json.keys() and validate_url(request.json['url']):
+            origin_url = request.json['url']
+            short_url = origin_url
+            new_url = Url(origin_url, short_url, user=user)
+            db.session.add(new_url)
+            db.session.commit()
+            # Encode the id of the new URL with Hashids to generate a short URL
+            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': create_ID(new_url.id)})
+            db.session.commit()
+            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
+        else:
+            return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
 
-        # DELETE method: returns a 404 error as the root cannot be deleted.
-        elif request.method == 'DELETE':
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
+    # DELETE method: returns a 404 error as the root cannot be deleted.
+    elif request.method == 'DELETE':
+        return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
 
 @app.route('/<key>', methods=['GET', 'PUT', 'DELETE'])
 def route_id(key):
-    """
-    This function maps HTTP requests for the shortened URL key to appropriate response message.
-
-    Args:
-        key (str): The shortened URL key(id).
-    """
-    # GET requests: retrieves the original URL from the database and redirects to it.
-    user = request.headers.get('Authorization')
-    user = utils.decode_token(user)
     if request.method == 'GET':
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) == 0:
@@ -133,24 +107,22 @@ def route_id(key):
                 return redirect(urls[0].origin_url)
             else:
                 return jsonify({'status': 'success', 'data': {'url': urls[0].origin_url}, 'code': 301}), 301
-
-    # PUT requests: updates the original URL for the provided shortened URL key.
-    elif request.method == 'PUT':
+    else:
+        token = request.headers.get('Authorization')
+        r = requests.get(AUTH_URL + '/users/validate', headers={'Authorization': token})
+        if r.status_code != 200:
+            return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
+        if 'user' not in r.json().keys():
+            return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
+        user = r.json()['user']
         if user == '' or user is None:
             return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
-        else:
+        if request.method == 'PUT':
             new_url = request.json['url']
-
             if new_url is None or not validate_url(new_url):
                 return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
             urls = Url.query.filter_by(short_url=key).all()
             if len(urls) > 0:
-                # Users only have operational access to their own URLs
-                user = request.headers.get('Authorization')
-                user = utils.decode_token(user)
-                # Assign each URL an authorization
-                if user == '' or user is None:
-                    return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
                 urls = Url.query.filter_by(short_url=key, user=user).all()
                 if len(urls) > 0:
                     db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
@@ -162,13 +134,9 @@ def route_id(key):
             else:
                 return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
-    # DELETE requests: deletes the original URL from the database.
-    elif request.method == 'DELETE':
-        if user == '' or user is None:
-            return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
-        else:
+        # DELETE requests: deletes the original URL from the database.
+        elif request.method == 'DELETE':
             urls = Url.query.filter_by(short_url=key).all()
-
             if len(urls) == 0:
                 return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
             else:
@@ -183,4 +151,5 @@ def route_id(key):
 
 
 if __name__ == '__main__':
-    app.run()
+    # set port = 3000
+    app.run(port=3001, debug=True)

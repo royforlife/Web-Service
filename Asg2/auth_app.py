@@ -83,6 +83,18 @@ def route_login():
         token = utils.generate_token(username)
         return jsonify({'status': 'success', 'message': 'login successful', 'code': 200, 'jwt': token}), 200
 
+@app.route('/users/validate', methods=['GET'])
+def route_validate():
+    if request.method == 'GET':
+        token = request.headers.get('Authorization')
+        if token is None:
+            return jsonify({'status': 'error', 'message': 'forbidden: jwt is missing', 'code': 403}), 403
+        user = utils.decode_token(token)
+        if user is None:
+            return jsonify({'status': 'error', 'message': 'forbidden: jwt is invalid', 'code': 403}), 403
+        # return user
+        return jsonify({'status': 'success', 'message': 'jwt is valid', 'code': 200, 'user': user}), 200
+
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=3000, debug=True)
