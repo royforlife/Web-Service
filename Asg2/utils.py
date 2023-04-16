@@ -22,13 +22,14 @@ def create_credentials(username, password):
 def generate_token(username):
     payload = {
         'username': username,
-        'start': int(time.time()),
         'expire': int(time.time()) + 60*60*24*7
     }
     return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
 
 
 def decode_token(token):
+    if token is None:
+        return None
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         if payload['expire'] < time.time():

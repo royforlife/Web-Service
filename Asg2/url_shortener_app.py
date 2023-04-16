@@ -76,34 +76,40 @@ def route_root():
     A Flask route that handles GET, POST, and DELETE requests for a URL shortener service.
     """
     # GET method: returns a JSON object containing all shortened URLs in the database.
-    if request.method == 'GET':
-        all_urls = Url.query.all()
-        return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
+    user = request.headers.get('Authorization')
+    user = utils.decode_token(user)
+    # Assign each URL an authorization
+    if user == '' or user is None:
+        return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
+    else:
+        if request.method == 'GET':
+            all_urls = Url.query.all()
+            return jsonify({'status': 'success', 'data': {'urls': [url.short_url for url in all_urls]}, 'code': 200}), 200
 
-    # POST method: if the URL is valid, it is added to the database with a new unique short URL.
-    # If the URL is invalid, an error response is returned.
-    elif request.method == 'POST':
-        if 'url' in request.json.keys() and validate_url(request.json['url']):
-            origin_url = request.json['url']
-            user = request.headers.get('Authorization')
-            user = utils.decode_token(user)
-            # Assign each URL an authorization
-            if user == '' or user is None:
-                return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
-            short_url = origin_url
-            new_url = Url(origin_url, short_url, user=user)
-            db.session.add(new_url)
-            db.session.commit()
-            # Encode the id of the new URL with Hashids to generate a short URL
-            db.session.query(Url).filter_by(id=new_url.id).update({'short_url': create_ID(new_url.id)})
-            db.session.commit()
-            return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
-        else:
-            return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
+        # POST method: if the URL is valid, it is added to the database with a new unique short URL.
+        # If the URL is invalid, an error response is returned.
+        elif request.method == 'POST':
+            if 'url' in request.json.keys() and validate_url(request.json['url']):
+                origin_url = request.json['url']
+                user = request.headers.get('Authorization')
+                user = utils.decode_token(user)
+                # Assign each URL an authorization
+                if user == '' or user is None:
+                    return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
+                short_url = origin_url
+                new_url = Url(origin_url, short_url, user=user)
+                db.session.add(new_url)
+                db.session.commit()
+                # Encode the id of the new URL with Hashids to generate a short URL
+                db.session.query(Url).filter_by(id=new_url.id).update({'short_url': create_ID(new_url.id)})
+                db.session.commit()
+                return jsonify({'status': 'success', 'data': {'id': new_url.short_url}, 'code': 201}), 201
+            else:
+                return jsonify({'status': 'error', 'data': {'message': 'invalid url or url not exist'}, 'code': 400}), 400
 
-    # DELETE method: returns a 404 error as the root cannot be deleted.
-    elif request.method == 'DELETE':
-        return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
+        # DELETE method: returns a 404 error as the root cannot be deleted.
+        elif request.method == 'DELETE':
+            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
 
 @app.route('/<key>', methods=['GET', 'PUT', 'DELETE'])
@@ -115,6 +121,8 @@ def route_id(key):
         key (str): The shortened URL key(id).
     """
     # GET requests: retrieves the original URL from the database and redirects to it.
+    user = request.headers.get('Authorization')
+    user = utils.decode_token(user)
     if request.method == 'GET':
         urls = Url.query.filter_by(short_url=key).all()
         if len(urls) == 0:
@@ -128,51 +136,50 @@ def route_id(key):
 
     # PUT requests: updates the original URL for the provided shortened URL key.
     elif request.method == 'PUT':
-
-        new_url = request.json['url']
-
-        if new_url is None or not validate_url(new_url):
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
-        urls = Url.query.filter_by(short_url=key).all()
-        if len(urls) > 0:
-            # Users only have operational access to their own URLs
-            user = request.headers.get('Authorization')
-            user = utils.decode_token(user)
-            # Assign each URL an authorization
-            if user == '' or user is None:
-                return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
-            urls = Url.query.filter_by(short_url=key, user=user).all()
-            if len(urls) > 0:
-                db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
-                db.session.commit()
-                return jsonify({'status': 'success'}), 200
-            else:
-                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
-
+        if user == '' or user is None:
+            return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
         else:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
+            new_url = request.json['url']
+
+            if new_url is None or not validate_url(new_url):
+                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 400}), 400
+            urls = Url.query.filter_by(short_url=key).all()
+            if len(urls) > 0:
+                # Users only have operational access to their own URLs
+                user = request.headers.get('Authorization')
+                user = utils.decode_token(user)
+                # Assign each URL an authorization
+                if user == '' or user is None:
+                    return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
+                urls = Url.query.filter_by(short_url=key, user=user).all()
+                if len(urls) > 0:
+                    db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
+                    db.session.commit()
+                    return jsonify({'status': 'success'}), 200
+                else:
+                    return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
+
+            else:
+                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
 
     # DELETE requests: deletes the original URL from the database.
     elif request.method == 'DELETE':
-
-        urls = Url.query.filter_by(short_url=key).all()
-
-        if len(urls) == 0:
-            return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
+        if user == '' or user is None:
+            return jsonify({'status': 'error', 'data': {'message': 'forbidden'}, 'code': 403}), 403
         else:
-            # Users only have deleted access to their own URLs
-            user = request.headers.get('Authorization')
-            user = utils.decode_token(user)
-            # Assign each URL an authorization
-            if user == '' or user is None:
-                return jsonify({'status': 'error', 'data': {'message': 'token invalid or expired'}, 'code': 400}), 400
-            urls = Url.query.filter_by(short_url=key, user=user).all()
+            urls = Url.query.filter_by(short_url=key).all()
+
             if len(urls) == 0:
-                return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
+                return jsonify({'status': 'error', 'data': {'message': 'error'}, 'code': 404}), 404
             else:
-                db.session.delete(urls[0])
-                db.session.commit()
-                return jsonify({'status': 'success', 'data': {'message': 'delete success'}, 'code': 204}), 204
+                # Users only have deleted access to their own URLs
+                urls = Url.query.filter_by(short_url=key, user=user).all()
+                if len(urls) == 0:
+                    return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
+                else:
+                    db.session.delete(urls[0])
+                    db.session.commit()
+                    return jsonify({'status': 'success', 'data': {'message': 'delete success'}, 'code': 204}), 204
 
 
 if __name__ == '__main__':
