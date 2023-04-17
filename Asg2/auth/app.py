@@ -1,15 +1,17 @@
-import os, re
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import urllib.request
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 import utils
+import os
 
 # Create a Flask app instance
 app = Flask(__name__)
 # Initialize the database
 POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
+# read POSTGRES_URI from environment variables
+if 'POSTGRES_URI' in os.environ.keys():
+    POSTGRES_URI = os.environ['POSTGRES_URI']
 engine = create_engine(POSTGRES_URI)
 if not database_exists(engine.url):
     create_database(engine.url)
@@ -99,5 +101,5 @@ def route_validate():
         return jsonify({'status': 'success', 'message': 'jwt is valid', 'code': 200, 'user': user}), 200
 
 
-if __name__ == '__main__':
-    app.run(port=3000, debug=True)
+# if __name__ == '__main__':
+#     app.run(host="0.0.0.0", debug=True)

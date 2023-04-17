@@ -3,10 +3,16 @@ import hashlib
 from JWT import JWT
 import string
 import random
+import os
 
 APP_SECRET = 'web-service-auth'
 JWT_SECRET = 'this_is_a_jwt_secret'
-EXPIRE_TIME = 60*60
+EXPIRE_TIME = 60*60*24*7
+
+# read APP_SECRET and JWT_SECRET from environment variables
+# APP_SECRET = os.environ.get('APP_SECRET')
+# JWT_SECRET = os.environ.get('JWT_SECRET')
+# EXPIRE_TIME = os.environ.get('EXPIRE_TIME')
 
 
 def create_credentials(username, password):

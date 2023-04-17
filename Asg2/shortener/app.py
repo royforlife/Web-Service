@@ -9,8 +9,13 @@ import requests
 # Create a Flask app instance
 app = Flask(__name__)
 # Initialize the database
-AUTH_URL = 'http://localhost:3000'
-POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
+# AUTH_URL = 'http://localhost:3000'
+# POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
+
+# read AUTH_URL and POSTGRES_URI from environment variables
+AUTH_URL = os.environ['AUTH_URL']
+POSTGRES_URI = os.environ['POSTGRES_URI_SHORT']
+
 engine = create_engine(POSTGRES_URI)
 if not database_exists(engine.url):
     create_database(engine.url)
@@ -150,6 +155,5 @@ def route_id(key):
                     return jsonify({'status': 'success', 'data': {'message': 'delete success'}, 'code': 204}), 204
 
 
-if __name__ == '__main__':
-    # set port = 3000
-    app.run(port=3001, debug=True)
+# if __name__ == '__main__':
+#     app.run(host="0.0.0.0", debug=True)
