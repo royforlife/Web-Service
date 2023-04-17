@@ -1,11 +1,12 @@
 import time
 import hashlib
-import jwt
+from JWT import JWT
 import string
 import random
 
 APP_SECRET = 'web-service-auth'
 JWT_SECRET = 'this_is_a_jwt_secret'
+EXPIRE_TIME = 60*60
 
 
 def create_credentials(username, password):
@@ -22,18 +23,18 @@ def create_credentials(username, password):
 def generate_token(username):
     payload = {
         'username': username,
-        'expire': int(time.time()) + 60*60*24*7
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+    return JWT.encode(payload, JWT_SECRET, EXPIRE_TIME)
 
 
 def decode_token(token):
     if token is None:
         return None
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        if payload['expire'] < time.time():
+        payload = JWT.decode(token, JWT_SECRET)
+        if payload is None or 'username' not in payload.keys():
             return None
+        return payload['username']
     except:
         return None
-    return payload['username']
+

@@ -81,7 +81,10 @@ def route_login():
         if current_credentials is None or current_credentials != user.password:
             return jsonify({'status': 'error', 'message': 'forbidden', 'code': 403}), 403
         token = utils.generate_token(username)
-        return jsonify({'status': 'success', 'message': 'login successful', 'code': 200, 'jwt': token}), 200
+        if token is None:
+            return jsonify({'status': 'error', 'message': 'forbidden', 'code': 403}), 403
+        return jsonify({'status': 'success', 'message': 'login successful', 'code': 200, 'jwt': token.decode('utf-8')}), 200
+
 
 @app.route('/users/validate', methods=['GET'])
 def route_validate():
