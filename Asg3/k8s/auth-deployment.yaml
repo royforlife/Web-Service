@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-auth
+  labels:
+    app: app-db
+spec:
+  selector:
+      matchLabels:
+        app: app-auth
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: app-auth
+    spec:
+      containers:
+        - name: app-auth
+          image: roylife/web-service-auth:v1
+          imagePullPolicy: Always
+          env:
+            - name: POSTGRES_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: POSTGRES_URI
+          ports:
+            - containerPort: 3000

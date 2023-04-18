@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-shortener
+  labels:
+    app: app-shortener
+spec:
+  selector:
+    matchLabels:
+      app: app-shortener
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: app-shortener
+    spec:
+      containers:
+        - name: app-shortener
+          image: roylife/web-service-shortener:v1
+          imagePullPolicy: Always
+          env:
+            - name: POSTGRES_URI_SHORT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: POSTGRES_URI_SHORT
+          ports:
+          - containerPort: 3001
