@@ -9,12 +9,12 @@ import requests
 # Create a Flask app instance
 app = Flask(__name__)
 # Initialize the database
-# AUTH_URL = 'http://localhost:3000'
-# POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
+AUTH_URL = os.environ['AUTH_URL']
+POSTGRES_URI = os.environ['POSTGRES_URI_SHORT']
 
 # read AUTH_URL and POSTGRES_URI from environment variables
-AUTH_URL = 'http://localhost:80'
-POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
+# AUTH_URL = 'http://localhost:3000'
+# POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
 
 engine = create_engine(POSTGRES_URI)
 if not database_exists(engine.url):
