@@ -3,6 +3,8 @@ import unittest
 from app import app
 import json
 import utils
+import random
+import string
 
 class TestApp(unittest.TestCase):
     def setUp(self):
@@ -38,9 +40,15 @@ class TestApp(unittest.TestCase):
 
 
     def test_users_post_none_user(self):
-        response = self.app.post('/users', data=json.dumps({'username': 'xyh', 'password': 'xyh'}), content_type='application/json')
-        self.assertEqual(json.loads(response.data)['code'], 409)
+        random_user = ''.join(random.choice(string.ascii_lowercase) for i in range(100))
+        response = self.app.post('/users', data=json.dumps({'username': random_user, 'password': 'xyh'}), content_type='application/json')
+        self.assertEqual(json.loads(response.data)['code'], 201)
     
+
+    def test_users_post_not_none_user(self):
+        response = self.app.post('/users', data=json.dumps({'username': 'xyh', 'password': 'none'}), content_type='application/json')
+        self.assertEqual(json.loads(response.data)['code'], 409)
+
 
     def test_users_put_none_username_or_password(self):
         response = self.app.put('/users', data=json.dumps({'username': 'xyh', 'old-password': 'xyh', 'new-password': 'xyh'}), content_type='application/json')
@@ -48,13 +56,20 @@ class TestApp(unittest.TestCase):
 
 
     def test_users_put_none_user(self):
-        response = self.app.put('/users', data=json.dumps({'username': 'no this user', 'old-password': 'xyh', 'new-password': 'xyh'}), content_type='application/json')
+        random_user = ''.join(random.choice(string.ascii_lowercase) for i in range(100))
+        response = self.app.put('/users', data=json.dumps({'username': random_user, 'old-password': 'xyh', 'new-password': 'xyh'}), content_type='application/json')
         self.assertEqual(json.loads(response.data)['code'], 403)
 
 
-    def test_users_put_none_user(self):
-        response = self.app.put('/users', data=json.dumps({'username': 'no this user', 'old-password': 'xyh', 'new-password': 'xyh'}), content_type='application/json')
+    def test_users_put_none_current_credentials(self):
+        response = self.app.put('/users', data=json.dumps({'username': 'xyh', 'old-password': 'none', 'new-password': 'xyh'}), content_type='application/json')
         self.assertEqual(json.loads(response.data)['code'], 403)
+
+
+    def test_users_post_none_current_credentials(self):
+        random_user = ''.join(random.choice(string.ascii_lowercase) for i in range(100))
+        response = self.app.post('/users', data=json.dumps({'username': random_user, 'password': None}), content_type='application/json')
+        self.assertEqual(json.loads(response.data)['code'], 400)
 
 
 if __name__ == '__main__':
