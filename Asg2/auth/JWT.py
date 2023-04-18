@@ -13,13 +13,19 @@ class JWT():
             'typ': 'JWT',
             'alg': 'HS256'
         }
+        # write comment about all the steps
+        # serialize and encode header
         header_json = json.dumps(header, separators=(',', ':'), sort_keys=True)
         header_json_base64 = JWT.b64encode(header_json.encode('utf-8'))
         payload = payload_origin.copy()
+        # add exp
         payload['exp'] = int(time.time()) + exp
+        # serialize and encode payload
         payload_json = json.dumps(payload, separators=(',', ':'), sort_keys=True)
         payload_json_base64 = JWT.b64encode(payload_json.encode('utf-8'))
+        # sign with secret, header and payload
         sign = hmac.new(secret.encode('utf-8'), header_json_base64 + b'.' + payload_json_base64, digestmod="SHA256")
+        # encode sign
         sign_base64 = JWT.b64encode(sign.digest())
 
         return header_json_base64 + b'.' + payload_json_base64 + b'.' + sign_base64
@@ -35,8 +41,11 @@ class JWT():
     @staticmethod
     def decode(token, secret):
         try:
+            # split token
             header_json_base64, payload_json_base64, sign_base64 = token.encode().split(b'.')
+            # re-create sign with secret, header and payload
             sign = hmac.new(secret.encode('utf-8'), header_json_base64 + b'.' + payload_json_base64, digestmod="SHA256")
+            # verify sign
             if sign_base64 != JWT.b64encode(sign.digest()):
                 return None
 
