@@ -13,8 +13,8 @@ app = Flask(__name__)
 # POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
 
 # read AUTH_URL and POSTGRES_URI from environment variables
-AUTH_URL = os.environ['AUTH_URL']
-POSTGRES_URI = os.environ['POSTGRES_URI_SHORT']
+AUTH_URL = 'http://localhost:80'
+POSTGRES_URI = 'postgresql://postgres:postgres@localhost:5432/data'
 
 engine = create_engine(POSTGRES_URI)
 if not database_exists(engine.url):
@@ -132,7 +132,7 @@ def route_id(key):
                 if len(urls) > 0:
                     db.session.query(Url).filter_by(id=urls[0].id).update({'origin_url': new_url})
                     db.session.commit()
-                    return jsonify({'status': 'success'}), 200
+                    return jsonify({'status': 'success', 'code': 200}), 200
                 else:
                     return jsonify({'status': 'error', 'data': {'message': 'Authorization Forbidden'}, 'code': 403}), 403
 
