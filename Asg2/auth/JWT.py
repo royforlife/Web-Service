@@ -2,17 +2,17 @@ import base64
 import json
 import time
 import hmac
-import hashlib
 
 # code reference source: https://blog.csdn.net/key_world/article/details/109634148
 class JWT():
     @staticmethod
     def encode(payload_origin, secret, exp=3600):
+        # define header which contains typ and alg, type means the type of token while alg means the algorithm used to sign
         header = {
             'typ': 'JWT',
             'alg': 'HS256'
         }
-        # serialize header
+        # serialize header, seperators(',', ':') means no space between key and value
         header_json = json.dumps(header, separators=(',', ':'), sort_keys=True)
         # encode header
         header_json_base64 = JWT.b64encode(header_json.encode('utf-8'))
@@ -42,11 +42,11 @@ class JWT():
     @staticmethod
     def decode(token, secret):
         try:
-            # split token
+            # split token to header, payload and sign
             header_json_base64, payload_json_base64, sign_base64 = token.encode().split(b'.')
-            # re-create sign with secret, header and payload
+            # re-create sign with same secret, header and payload
             sign = hmac.new(secret.encode('utf-8'), header_json_base64 + b'.' + payload_json_base64, digestmod="SHA256")
-            # verify sign
+            # so we can verify if the sign is still same with the one in token
             if sign_base64 != JWT.b64encode(sign.digest()):
                 return None
 

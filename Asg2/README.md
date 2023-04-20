@@ -11,3 +11,5 @@ docker-compose build
 ```shell
 docker-compose up -d
 ```
+
+### 3. the web service is running on `http://127.0.0.1:80`
