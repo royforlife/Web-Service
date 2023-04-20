@@ -4,7 +4,6 @@ import time
 import hmac
 import hashlib
 
-# TODO: implement JWT class including encode and decode methods
 # code reference source: https://blog.csdn.net/key_world/article/details/109634148
 class JWT():
     @staticmethod
@@ -13,12 +12,12 @@ class JWT():
             'typ': 'JWT',
             'alg': 'HS256'
         }
-        # write comment about all the steps
-        # serialize and encode header
+        # serialize header
         header_json = json.dumps(header, separators=(',', ':'), sort_keys=True)
+        # encode header
         header_json_base64 = JWT.b64encode(header_json.encode('utf-8'))
         payload = payload_origin.copy()
-        # add exp
+        # add exp which is the current time plus exp to payload
         payload['exp'] = int(time.time()) + exp
         # serialize and encode payload
         payload_json = json.dumps(payload, separators=(',', ':'), sort_keys=True)
@@ -32,10 +31,12 @@ class JWT():
 
     @staticmethod
     def b64encode(data):
+        # use urlsafe_b64encode to replace b64encode to make sure the token is url safe
         return base64.urlsafe_b64encode(data).replace(b'=', b'')
 
     @staticmethod
     def b64decode(data):
+        # use urlsafe_b64decode to replace b64decode to make sure the token is url safe
         return base64.urlsafe_b64decode(data + b'=' * (4 - len(data) % 4))
 
     @staticmethod
@@ -49,9 +50,11 @@ class JWT():
             if sign_base64 != JWT.b64encode(sign.digest()):
                 return None
 
-            # verify exp
+            # decode payload
             payload_json = JWT.b64decode(payload_json_base64)
+            # deserialize payload
             payload = json.loads(payload_json)
+            # compare the exp with current time to verify exp
             if int(payload['exp']) < int(time.time()):
                 return None
             return payload

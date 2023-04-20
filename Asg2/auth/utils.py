@@ -16,7 +16,7 @@ EXPIRE_TIME = 60*60*24*7
 
 
 def create_credentials(username, password):
-    # create a random salt
+    # create credentials for the user which is a hash of username and password
     try:
         val = password + APP_SECRET + username
         _md5 = hashlib.md5()
@@ -30,16 +30,20 @@ def generate_token(username):
     payload = {
         'username': username,
     }
+    # generate JWT token
     return JWT.encode(payload, JWT_SECRET, EXPIRE_TIME)
 
 
 def decode_token(token):
+    # decode the token, get the user if token is valid, else return None
     if token is None:
         return None
     try:
+        # decode the token
         payload = JWT.decode(token, JWT_SECRET)
         if payload is None or 'username' not in payload.keys():
             return None
+        # return the username
         return payload['username']
     except:
         return None
