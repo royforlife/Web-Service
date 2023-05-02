@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
         - name: proxy
-          image: roylife/web-service-proxy:v1
+          image: roylife/web-service-proxy:v2
           ports:
             - containerPort: 80
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service

@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: shortener
   name: shortener
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       io.kompose.service: shortener
@@ -30,7 +30,7 @@ spec:
               value: http://auth:3000
             - name: POSTGRES_URI_SHORT
               value: postgresql://postgres:postgres@db:5432/url
-          image: roylife/web-service-shortener:v1
+          image: roylife/web-service-shortener:v2
           name: shortener
           ports:
             - containerPort: 3001

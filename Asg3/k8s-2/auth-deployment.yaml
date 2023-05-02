@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: auth
   name: auth
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       io.kompose.service: auth
@@ -34,7 +34,7 @@ spec:
               value: this_is_a_jwt_secret
             - name: POSTGRES_URI
               value: postgresql://postgres:postgres@db:5432/users
-          image: roylife/web-service-auth:v1
+          image: roylife/web-service-auth:v2
           name: auth
           ports:
             - containerPort: 3000

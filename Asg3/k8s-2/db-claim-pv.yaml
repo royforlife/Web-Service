@@ -9,7 +9,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /Users/xyh/VU/Web-Service/Web-Service/Asg3/k8s-2/db-data2/
+    path: /mnt/data/
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

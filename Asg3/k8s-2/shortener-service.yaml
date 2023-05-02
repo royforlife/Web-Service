@@ -14,7 +14,7 @@ spec:
   ports:
     - protocol: TCP
       port: 3001
-      nodePort: 30001
+      # nodePort: 30001
   type: NodePort
   selector:
     io.kompose.service: shortener
