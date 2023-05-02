@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: shortener
+  name: shortener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: shortener
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.28.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/k8s-2-default: "true"
+        io.kompose.service: shortener
+    spec:
+      containers:
+        - env:
+            - name: AUTH_URL
+              value: http://auth:3000
+            - name: POSTGRES_URI_SHORT
+              value: postgresql://postgres:postgres@db:5432/url
+          image: roylife/web-service-shortener:v1
+          name: shortener
+          ports:
+            - containerPort: 3001
+          resources: {}
+      restartPolicy: Always
+status: {}
