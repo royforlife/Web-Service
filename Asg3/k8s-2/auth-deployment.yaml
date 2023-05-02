@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.28.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: auth
+  name: auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: auth
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.28.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/k8s-2-default: "true"
+        io.kompose.service: auth
+    spec:
+      containers:
+        - env:
+            - name: APP_SECRET
+              value: web-service-auth
+            - name: EXPIRE_TIME
+              value: 60*60*24
+            - name: JWT_SECRET
+              value: this_is_a_jwt_secret
+            - name: POSTGRES_URI
+              value: postgresql://postgres:postgres@db:5432/users
+          image: roylife/web-service-auth:v1
+          name: auth
+          ports:
+            - containerPort: 3000
+          resources: {}
+      restartPolicy: Always
+status: {}
